@@ -260,8 +260,8 @@ public struct Unsafe${Mutable}BufferPointer<Element>
 	  
 	  self._assign(from: newValue, to: bounds)
     }
-%  end
   }
+%end
 
 %if Mutable:
   ///
