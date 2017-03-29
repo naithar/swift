@@ -246,14 +246,44 @@ public struct Unsafe${Mutable}BufferPointer<Element>
         base: self, bounds: bounds)
     }
 %  if Mutable:
-    set {
+    nonmutating set {
       _debugPrecondition(bounds.lowerBound >= startIndex)
       _debugPrecondition(bounds.upperBound <= endIndex)
+	  _precondition(
+		bounds.count == newValue.count, 
+		"Cannot replace a slice of UnsafeMutablePointer with a slice of a different size")
       // FIXME: swift-3-indexing-model: tests.
-      _writeBackMutableSlice(&self, bounds: bounds, slice: newValue)
+
+	  guard (_position! + bounds.lowerBound) != newValue.base.baseAddress else { 
+		return
+	  }
+	  
+	  self._assign(from: newValue, to: bounds)
     }
 %  end
   }
+
+%if Mutable:
+  ///
+  ///
+  ///
+  @_versioned
+  func _assign(from source: MutableRandomAccessSlice<UnsafeMutableBufferPointer<Element>>,
+                    to bounds: Range<Int>) {
+    var currentIndex = bounds.lowerBound
+    let endIndex = bounds.upperBound
+    
+    var sourceIndex = source.startIndex
+    let sourceEndIndex = source.endIndex
+    
+    while currentIndex != endIndex
+      && sourceIndex != sourceEndIndex {
+        _position![currentIndex] = source[sourceIndex]
+        self.formIndex(after: &currentIndex)
+        source.formIndex(after: &sourceIndex)
+    }
+  }
+%end
 
   /// Creates a new buffer pointer over the specified number of contiguous
   /// instances beginning at the given pointer.
